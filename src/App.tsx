@@ -52,7 +52,7 @@ export function App() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 text-white">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-gray-900 text-white">
       <header className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
         <h1 className="text-xl font-bold">PDF Viewer</h1>
         <div className="flex items-center gap-2">
@@ -61,16 +61,16 @@ export function App() {
         </div>
       </header>
 
-      <nav className="flex justify-center bg-gray-800 border-b border-gray-700 overflow-x-auto">
-        <div className="flex gap-1 px-4 py-2 w-full">
+      <nav className="min-w-0 w-full bg-gray-800 border-b border-gray-700 overflow-x-auto">
+        <div className="flex gap-1 px-4 py-2">
           {pdfs.length === 0 && (
-            <span className="text-gray-500 text-sm">No PDF files found</span>
+            <span className="text-gray-500 text-sm whitespace-nowrap">No PDF files found</span>
           )}
           {pdfs.map(pdf => (
             <button
               key={pdf.name}
               onClick={() => setSelectedPdf(pdf.name)}
-              className={`px-4 py-2 rounded-t text-sm font-medium transition-colors ${
+              className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-t text-sm font-medium transition-colors ${
                 selectedPdf === pdf.name
                   ? 'bg-gray-700 text-white border-t-2 border-blue-500'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
