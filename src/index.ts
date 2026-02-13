@@ -37,6 +37,7 @@ function broadcastPdfs() {
 
 watch(PDF_DIR, (event, filename) => {
   if (filename?.endsWith(".pdf")) {
+    console.log(`[watch] ${event}: ${filename}`);
     broadcastPdfs();
     clients.forEach(ws => {
       ws.send(JSON.stringify({ type: "pdf-changed", name: filename }));
@@ -57,13 +58,16 @@ const server = serve({
     "/api/pdf/:name": async (req) => {
       const name = decodeURIComponent(req.params.name);
       if (!name.endsWith(".pdf") || name.includes("/") || name.includes("..")) {
+        console.log(`[serve] Rejected invalid file request: ${name}`);
         return new Response("Invalid file", { status: 400 });
       }
       const filePath = join(PDF_DIR, name);
       const file = Bun.file(filePath);
       if (!(await file.exists())) {
+        console.log(`[serve] File not found: ${name}`);
         return new Response("Not found", { status: 404 });
       }
+      console.log(`[serve] Serving PDF to client: ${name}`);
       return new Response(file, {
         headers: { "Content-Type": "application/pdf" },
       });

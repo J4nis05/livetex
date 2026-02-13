@@ -15,6 +15,19 @@ export function App() {
   const wsRef = useRef<WebSocket | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      nav.scrollLeft += e.deltaY;
+    };
+    nav.addEventListener("wheel", onWheel, { passive: false });
+    return () => nav.removeEventListener("wheel", onWheel);
+  }, []);
 
   useEffect(() => {
     fetch("/api/pdfs")
@@ -61,7 +74,7 @@ export function App() {
         </div>
       </header>
 
-      <nav className="min-w-0 w-full bg-gray-800 border-b border-gray-700 overflow-x-auto">
+      <nav ref={navRef} className="min-w-0 w-full bg-gray-800 border-b border-gray-700 overflow-x-auto">
         <div className="flex gap-1 px-4 py-2">
           {pdfs.length === 0 && (
             <span className="text-gray-500 text-sm whitespace-nowrap">No PDF files found</span>
