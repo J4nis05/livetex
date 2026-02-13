@@ -1,16 +1,26 @@
+/*
+ * index.css — Global styles for the LiveTex frontend.
+ *
+ * Imports Tailwind CSS v4 and defines:
+ *   - Base theme overrides (dark background, light text, system font).
+ *   - A subtle tiled logo watermark behind the page content.
+ *   - A prefers-reduced-motion media query that disables all animations.
+ */
+
 @import "tailwindcss";
 
+/* ---- Base layer: root theme & body layout ---- */
 @layer base {
   :root {
     @apply text-[rgba(255,255,255,0.87)] bg-[#242424] font-sans;
   }
 
   body {
-    /* @apply grid place-items-center min-w-[320px] min-h-screen relative m-0; */
     @apply grid items-center w-full min-h-screen relative m-0;
   }
 }
 
+/* ---- Decorative tiled logo watermark ---- */
 body::before {
   content: "";
   position: fixed;
@@ -42,6 +52,7 @@ body::before {
   }
 }
 
+/* ---- Accessibility: disable animations for users who prefer reduced motion ---- */
 @media (prefers-reduced-motion) {
   *,
   ::before,

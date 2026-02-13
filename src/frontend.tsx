@@ -1,13 +1,18 @@
 /**
- * This file is the entry point for the React app, it sets up the root
- * element and renders the App component to the DOM.
+ * frontend.tsx — Client-side entry point for the LiveTex React application.
  *
- * It is included in `src/index.html`.
+ * This module is loaded by `src/index.html` as a `<script type="module">`.
+ * It bootstraps React 19 by creating a root and rendering the top-level
+ * `<App />` component into the `#root` DOM element.
+ *
+ * If the DOM is still loading when this script runs, rendering is deferred
+ * until `DOMContentLoaded` fires; otherwise it starts immediately.
  */
 
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 
+/** Create a React root and mount the application. */
 function start() {
   const root = createRoot(document.getElementById("root")!);
   root.render(<App />);

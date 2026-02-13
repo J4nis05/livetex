@@ -1,6 +1,24 @@
+/**
+ * App.tsx — Main React component for the LiveTex PDF viewer.
+ *
+ * Renders a full-screen, dark-themed UI with:
+ *   - A header showing the app title and WebSocket connection status.
+ *   - A horizontally-scrollable tab bar listing every PDF found on the server.
+ *   - An `<iframe>` that displays the currently selected PDF.
+ *
+ * On mount the component:
+ *   1. Fetches the initial PDF list from `GET /api/pdfs`.
+ *   2. Opens a WebSocket to `/ws` for real-time updates.
+ *
+ * When the server broadcasts a `pdfs-updated` event the tab bar is refreshed.
+ * When a `pdf-changed` event arrives for the active PDF, the iframe is
+ * reloaded in-place so the user always sees the latest version.
+ */
+
 import { useEffect, useState, useRef } from "react";
 import "./index.css";
 
+/** Shape of a single PDF file entry returned by the server API. */
 interface PdfFile {
   name: string;
   path: string;
@@ -8,15 +26,28 @@ interface PdfFile {
 }
 
 export function App() {
+  /** List of PDF files available on the server. */
   const [pdfs, setPdfs] = useState<PdfFile[]>([]);
+  /** Name of the currently selected (displayed) PDF. */
   const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
+  /** Whether the WebSocket connection to the server is alive. */
   const [connected, setConnected] = useState(false);
+  /** Resolved absolute path of the server's watched PDF directory. */
   const [watchedDir, setWatchedDir] = useState<string>("");
   const wsRef = useRef<WebSocket | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  /**
+   * Monotonically increasing key used to force-remount the PDF `<iframe>`
+   * when the underlying file changes on disk.
+   */
   const [refreshKey, setRefreshKey] = useState(0);
   const navRef = useRef<HTMLElement>(null);
 
+  /**
+   * Horizontal scroll support for the tab bar: converts vertical mouse-wheel
+   * events into horizontal scroll so users can scroll through many tabs
+   * without holding Shift.
+   */
   useEffect(() => {
     const nav = navRef.current;
     if (!nav) return;
@@ -29,6 +60,15 @@ export function App() {
     return () => nav.removeEventListener("wheel", onWheel);
   }, []);
 
+  /**
+   * On mount:
+   *   1. Fetch the initial PDF list from the REST API and auto-select the
+   *      first file if none is selected yet.
+   *   2. Open a WebSocket connection and listen for real-time events:
+   *      - `pdfs-updated` — refreshes the file list and adjusts the
+   *        selection if the current file was removed.
+   *      - `pdf-changed`  — bumps `refreshKey` to reload the active PDF.
+   */
   useEffect(() => {
     fetch("/api/pdfs")
       .then(res => res.json())

@@ -1,8 +1,25 @@
+/**
+ * APITester.tsx — Developer utility component for testing server API endpoints.
+ *
+ * Renders a small form that lets you pick an HTTP method (GET / PUT), enter an
+ * endpoint path, and fire a request. The JSON response (or error) is displayed
+ * in a read-only textarea below the form.
+ *
+ * This component is not used in the main application UI but is available for
+ * development and debugging purposes.
+ */
+
 import { useRef, type FormEvent } from "react";
 
 export function APITester() {
+  /** Ref to the response textarea so we can imperatively set its value. */
   const responseInputRef = useRef<HTMLTextAreaElement>(null);
 
+  /**
+   * Handles form submission: reads the selected method and endpoint from the
+   * form, fires a `fetch` request, and writes the JSON response (or error
+   * message) into the response textarea.
+   */
   const testEndpoint = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 

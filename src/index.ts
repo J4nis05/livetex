@@ -1,12 +1,43 @@
+/**
+ * LiveTex — Backend Server
+ *
+ * This is the main entry point for the LiveTex application. It spins up a Bun
+ * HTTP server that:
+ *   1. Serves the React frontend (via the HTML entrypoint).
+ *   2. Exposes a REST API for listing and fetching PDF files.
+ *   3. Watches a configurable PDF directory on disk and pushes real-time
+ *      update notifications to all connected clients over WebSocket.
+ *
+ * The PDF directory can be configured via:
+ *   - CLI argument:        `bun dev ./my-pdfs`
+ *   - Environment variable: `PDF_DIR=./my-pdfs bun dev`
+ *   - Falls back to `./pdfs` if neither is provided.
+ */
+
 import { serve } from "bun";
 import index from "./index.html";
 import { readdirSync, statSync, mkdirSync, watch } from "fs";
 import { join, resolve } from "path";
 
+/**
+ * Resolve the PDF directory from CLI args, env var, or default ("./pdfs").
+ * The directory is created automatically if it doesn't already exist.
+ */
 const PDF_DIR = process.argv[2] || process.env.PDF_DIR || "./pdfs";
 
 mkdirSync(PDF_DIR, { recursive: true });
 
+// ---------------------------------------------------------------------------
+// PDF helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Scans `PDF_DIR` and returns metadata for every `.pdf` file found,
+ * sorted alphabetically by name.
+ *
+ * @returns An array of objects containing the file `name`, absolute `path`,
+ *          and last-`modified` timestamp (in ms).
+ */
 function listPdfs(): { name: string; path: string; modified: number }[] {
   try {
     const files = readdirSync(PDF_DIR);
@@ -27,14 +58,34 @@ function listPdfs(): { name: string; path: string; modified: number }[] {
   }
 }
 
+// ---------------------------------------------------------------------------
+// WebSocket client tracking
+// ---------------------------------------------------------------------------
+
+/** Active WebSocket connections. Used to broadcast real-time PDF updates. */
 const clients = new Set<WebSocket>();
 
+/**
+ * Sends the current list of PDF files to every connected WebSocket client
+ * as a `pdfs-updated` message.
+ */
 function broadcastPdfs() {
   const files = listPdfs();
   const msg = JSON.stringify({ type: "pdfs-updated", files });
   clients.forEach(ws => ws.send(msg));
 }
 
+// ---------------------------------------------------------------------------
+// File system watcher
+// ---------------------------------------------------------------------------
+
+/**
+ * Watches `PDF_DIR` for file-system events. When a `.pdf` file is added,
+ * removed, or modified the server:
+ *   - Broadcasts the full updated file list (`pdfs-updated`).
+ *   - Sends a targeted `pdf-changed` event so the frontend can refresh
+ *     an already-open PDF in-place.
+ */
 watch(PDF_DIR, (event, filename) => {
   if (filename?.endsWith(".pdf")) {
     console.log(`[watch] ${event}: ${filename}`);
@@ -45,16 +96,32 @@ watch(PDF_DIR, (event, filename) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// HTTP + WebSocket server
+// ---------------------------------------------------------------------------
+
 const server = serve({
   routes: {
+    /** Catch-all: serve the React SPA for any non-API route. */
     "/*": index,
 
+    /**
+     * GET /api/pdfs
+     * Returns a JSON object with:
+     *   - `files`     – array of PDF metadata (name, path, modified).
+     *   - `watchedDir` – the resolved absolute path of the watched directory.
+     */
     "/api/pdfs": {
       GET() {
         return Response.json({ files: listPdfs(), watchedDir: resolve(PDF_DIR) });
       },
     },
 
+    /**
+     * GET /api/pdf/:name
+     * Serves a single PDF file by name. Includes basic path-traversal
+     * protection (rejects names containing `/` or `..`).
+     */
     "/api/pdf/:name": async (req) => {
       const name = decodeURIComponent(req.params.name);
       if (!name.endsWith(".pdf") || name.includes("/") || name.includes("..")) {
@@ -73,6 +140,7 @@ const server = serve({
       });
     },
 
+    /** Upgrade HTTP requests on `/ws` to WebSocket connections. */
     "/ws": (req) => {
       const upgraded = server.upgrade(req);
       if (!upgraded) {
@@ -82,6 +150,7 @@ const server = serve({
     },
   },
 
+  /** WebSocket lifecycle handlers — track connected clients. */
   websocket: {
     open(ws) {
       clients.add(ws);
@@ -91,6 +160,10 @@ const server = serve({
     },
   },
 
+  /**
+   * In development mode, enable Bun's built-in Hot Module Replacement (HMR)
+   * and enhanced console output.
+   */
   development: process.env.NODE_ENV !== "production" && {
     hmr: true,
     console: true,
