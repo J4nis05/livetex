@@ -3,7 +3,7 @@ import index from "./index.html";
 import { readdirSync, statSync, mkdirSync, watch } from "fs";
 import { join, resolve } from "path";
 
-const PDF_DIR = process.env.PDF_DIR || "./pdfs";
+const PDF_DIR = process.argv[2] || process.env.PDF_DIR || "./pdfs";
 
 mkdirSync(PDF_DIR, { recursive: true });
 
