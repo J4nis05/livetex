@@ -36,12 +36,17 @@ export function App() {
   const [watchedDir, setWatchedDir] = useState<string>("");
   const wsRef = useRef<WebSocket | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const selectedPdfRef = useRef<string | null>(null);
   /**
    * Monotonically increasing key used to force-remount the PDF `<iframe>`
    * when the underlying file changes on disk.
    */
   const [refreshKey, setRefreshKey] = useState(0);
   const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    selectedPdfRef.current = selectedPdf;
+  }, [selectedPdf]);
 
   /**
    * Horizontal scroll support for the tab bar: converts vertical mouse-wheel
@@ -96,7 +101,7 @@ export function App() {
           }
           return current;
         });
-      } else if (msg.type === "pdf-changed" && msg.name === selectedPdf) {
+      } else if (msg.type === "pdf-changed" && msg.name === selectedPdfRef.current) {
         setRefreshKey(k => k + 1);
       }
     };
