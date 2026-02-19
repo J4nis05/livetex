@@ -17,6 +17,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import "./index.css";
+import unauthorizedGif from "./you-didnt-do-it.gif";
 
 /** Shape of a single PDF file entry returned by the server API. */
 interface PdfFile {
@@ -25,7 +26,31 @@ interface PdfFile {
   modified: number;
 }
 
+/**
+ * Checks whether the current URL contains the query parameter `foo=bar`.
+ */
+function isAuthorized(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("bing") === "bong";
+}
+
 export function App() {
+  const authorized = isAuthorized();
+
+  if (!authorized) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center text-white gap-6">
+        <div className="flex flex-col items-center gap-4">
+          <h1 className="text-4xl font-bold text-red-500">Unauthorized</h1>
+          <img
+            src={unauthorizedGif}
+            alt="You didn't do it"
+            className="max-w-md rounded-lg shadow-lg"
+          />
+        </div>
+      </div>
+    );
+  }
   /** List of PDF files available on the server. */
   const [pdfs, setPdfs] = useState<PdfFile[]>([]);
   /** Name of the currently selected (displayed) PDF. */
